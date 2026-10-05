@@ -1,97 +1,427 @@
-
 import streamlit as st
-from PIL import Image
-from io import BytesIO
-import re, zipfile, io
 
-st.set_page_config(page_title="DSA Notes PDF Generator", page_icon="📚", layout="wide")
-st.title("📚 DSA Notes — Automatic PDF Generator")
-st.caption("Upload your notes images. Numbered filenames are automatically sorted into the correct sequence.")
+# =========================================================
+# PAGE CONFIG
+# =========================================================
 
-st.markdown("""
-**Recommended filenames**
+st.set_page_config(
+    page_title="PhotoToPDF Studio",
+    page_icon="📄",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-`001_Data_Structure.png`  
-`002_Classification.png`  
-`003_ADT.png`  
-`004_DS_vs_Algorithm.png`  
-`...`  
-`059_Radix_Sort.png`  
-`060_Complexity_Cheat_Sheet.png`
 
-You can upload individual images or one ZIP containing all images.
-""")
+# =========================================================
+# CSS
+# =========================================================
 
-uploaded = st.file_uploader(
-    "Upload PNG/JPG/JPEG images or a ZIP",
+st.markdown(
+    """
+<style>
+
+.main-title {
+    font-size: 36px;
+    font-weight: 800;
+    margin-bottom: 4px;
+}
+
+.subtitle {
+    color: #6b7280;
+    font-size: 16px;
+    margin-bottom: 25px;
+}
+
+.small-text {
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.upload-box {
+    padding: 35px;
+    border: 2px dashed #cbd5e1;
+    border-radius: 18px;
+    text-align: center;
+    background: #ffffff;
+    margin-bottom: 20px;
+}
+
+.upload-title {
+    font-size: 22px;
+    font-weight: 700;
+}
+
+.feature-title {
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.feature-text {
+    color: #6b7280;
+    font-size: 13px;
+}
+
+</style>
+""",
+    unsafe_allow_html=True
+)
+
+
+# =========================================================
+# SIDEBAR
+# =========================================================
+
+with st.sidebar:
+
+    st.title("📄 PhotoToPDF")
+
+    st.caption("Professional PDF Studio")
+
+    st.divider()
+
+    st.subheader("Workspace")
+
+    st.button("🏠 Dashboard", use_container_width=True)
+
+    st.button("📄 My Documents", use_container_width=True)
+
+    st.button("⭐ Templates", use_container_width=True)
+
+    st.divider()
+
+    st.subheader("Tools")
+
+    st.button("🖼️ Images → PDF", use_container_width=True)
+
+    st.button("✂️ Image Editor", use_container_width=True)
+
+    st.button("🗜️ Compress PDF", use_container_width=True)
+
+    st.button("🔍 OCR Scanner", use_container_width=True)
+
+    st.divider()
+
+    st.subheader("Settings")
+
+    st.button("⚙️ Preferences", use_container_width=True)
+
+    st.divider()
+
+    st.caption("PhotoToPDF Studio")
+    st.caption("Version 1.0")
+
+
+# =========================================================
+# HEADER
+# =========================================================
+
+header_left, header_right = st.columns([5, 1])
+
+with header_left:
+
+    st.markdown(
+        '<div class="main-title">Photo to PDF Studio</div>',
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        '<div class="subtitle">'
+        'Turn your images into professional, high-quality PDF documents.'
+        '</div>',
+        unsafe_allow_html=True
+    )
+
+with header_right:
+
+    st.success("● Ready")
+
+
+# =========================================================
+# UPLOAD AREA
+# =========================================================
+
+st.markdown("### ☁️ Upload your images")
+
+st.info(
+    "Upload multiple photos or a ZIP file containing your images."
+)
+
+uploaded_files = st.file_uploader(
+    "Choose images",
     type=["png", "jpg", "jpeg", "zip"],
     accept_multiple_files=True
 )
 
-def number_key(name):
-    m = re.match(r"\s*(\d+)", name)
-    return (int(m.group(1)) if m else 10**9, name.lower())
 
-if uploaded:
-    items = []
+# =========================================================
+# WHEN NO FILES
+# =========================================================
 
-    for f in uploaded:
-        if f.name.lower().endswith(".zip"):
-            try:
-                with zipfile.ZipFile(f) as z:
-                    for info in z.infolist():
-                        if not info.is_dir() and info.filename.lower().endswith((".png", ".jpg", ".jpeg")):
-                            img = Image.open(io.BytesIO(z.read(info.filename))).convert("RGB")
-                            items.append((Path(info.filename).name, img))
-            except Exception as e:
-                st.error(f"Could not read ZIP {f.name}: {e}")
-        else:
-            try:
-                items.append((f.name, Image.open(f).convert("RGB")))
-            except Exception:
-                st.warning(f"Could not read: {f.name}")
+if not uploaded_files:
 
-    items.sort(key=lambda x: number_key(x[0]))
+    st.divider()
 
-    if items:
-        st.success(f"{len(items)} pages detected and sorted automatically.")
+    st.markdown("## 📄 Your PDF workspace is empty")
 
-        st.subheader("PDF order")
-        cols = st.columns(4)
-        for i, (name, img) in enumerate(items):
-            with cols[i % 4]:
-                st.image(img, caption=f"{i+1}. {name}", use_container_width=True)
+    st.markdown(
+        '<div class="small-text">'
+        'Upload images above to start creating your document.'
+        '</div>',
+        unsafe_allow_html=True
+    )
 
-        st.divider()
-        st.subheader("PDF settings")
-        page_size = st.selectbox("Page size", ["A4 Portrait", "A4 Landscape"])
-        margin = st.slider("White margin", 0, 36, 0)
+    st.divider()
 
-        if st.button("🚀 Generate PDF", type="primary", use_container_width=True):
-            W, H = (595, 842) if page_size == "A4 Portrait" else (842, 595)
-            pages = []
+    st.markdown("## ✨ Everything you need")
 
-            for _, img in items:
-                canvas = Image.new("RGB", (W, H), "white")
-                avail_w, avail_h = W - 2 * margin, H - 2 * margin
-                scale = min(avail_w / img.width, avail_h / img.height)
-                nw, nh = max(1, int(img.width * scale)), max(1, int(img.height * scale))
-                resized = img.resize((nw, nh), Image.Resampling.LANCZOS)
-                canvas.paste(resized, ((W - nw)//2, (H - nh)//2))
-                pages.append(canvas)
+    col1, col2, col3, col4 = st.columns(4)
 
-            output = BytesIO()
-            pages[0].save(
-                output, format="PDF", save_all=True,
-                append_images=pages[1:], resolution=150.0
+    with col1:
+
+        st.markdown("### 🖼️")
+
+        st.markdown(
+            '<div class="feature-title">Multiple Images</div>',
+            unsafe_allow_html=True
+        )
+
+        st.markdown(
+            '<div class="feature-text">'
+            'Upload multiple images or complete ZIP folders.'
+            '</div>',
+            unsafe_allow_html=True
+        )
+
+    with col2:
+
+        st.markdown("### ↕️")
+
+        st.markdown(
+            '<div class="feature-title">Easy Reordering</div>',
+            unsafe_allow_html=True
+        )
+
+        st.markdown(
+            '<div class="feature-text">'
+            'Arrange pages exactly how you want.'
+            '</div>',
+            unsafe_allow_html=True
+        )
+
+    with col3:
+
+        st.markdown("### 🎨")
+
+        st.markdown(
+            '<div class="feature-title">Image Editing</div>',
+            unsafe_allow_html=True
+        )
+
+        st.markdown(
+            '<div class="feature-text">'
+            'Crop, rotate and enhance your pages.'
+            '</div>',
+            unsafe_allow_html=True
+        )
+
+    with col4:
+
+        st.markdown("### 📄")
+
+        st.markdown(
+            '<div class="feature-title">High Quality PDF</div>',
+            unsafe_allow_html=True
+        )
+
+        st.markdown(
+            '<div class="feature-text">'
+            'Generate clean and professional PDF documents.'
+            '</div>',
+            unsafe_allow_html=True
+        )
+
+
+# =========================================================
+# WHEN FILES ARE UPLOADED
+# =========================================================
+
+else:
+
+    st.divider()
+
+    st.markdown("## 📑 Page Manager")
+
+    st.caption(
+        f"{len(uploaded_files)} file(s) uploaded."
+    )
+
+    # -----------------------------------------
+    # ACTIONS
+    # -----------------------------------------
+
+    col1, col2, col3, col4, col5 = st.columns(5)
+
+    with col1:
+        st.button(
+            "➕ Add Images",
+            use_container_width=True
+        )
+
+    with col2:
+        st.button(
+            "↕️ Sort Pages",
+            use_container_width=True
+        )
+
+    with col3:
+        st.button(
+            "↶ Rotate",
+            use_container_width=True
+        )
+
+    with col4:
+        st.button(
+            "✂️ Crop",
+            use_container_width=True
+        )
+
+    with col5:
+        st.button(
+            "🗑️ Remove",
+            use_container_width=True
+        )
+
+    st.divider()
+
+    # -----------------------------------------
+    # IMAGE PREVIEW
+    # -----------------------------------------
+
+    image_columns = st.columns(4)
+
+    for index, file in enumerate(uploaded_files):
+
+        with image_columns[index % 4]:
+
+            st.caption(
+                f"PAGE {index + 1} — {file.name}"
             )
 
-            st.download_button(
-                "⬇️ Download DSA Notes PDF",
-                data=output.getvalue(),
-                file_name="DSA_Notes_Complete.pdf",
-                mime="application/pdf",
+            st.image(
+                file,
                 use_container_width=True
             )
-    else:
-        st.info("No readable images found.")
+
+            c1, c2 = st.columns(2)
+
+            with c1:
+
+                st.button(
+                    "↶ Rotate",
+                    key=f"rotate_{index}",
+                    use_container_width=True
+                )
+
+            with c2:
+
+                st.button(
+                    "🗑️ Delete",
+                    key=f"delete_{index}",
+                    use_container_width=True
+                )
+
+
+    # =====================================================
+    # PDF SETTINGS
+    # =====================================================
+
+    st.divider()
+
+    st.markdown("## ⚙️ PDF Settings")
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+
+        page_size = st.selectbox(
+            "📐 Page Size",
+            [
+                "A4 Portrait",
+                "A4 Landscape",
+                "Letter Portrait",
+                "Letter Landscape",
+                "Legal Portrait",
+                "Legal Landscape"
+            ]
+        )
+
+    with col2:
+
+        image_fit = st.selectbox(
+            "🖼️ Image Fit",
+            [
+                "Contain",
+                "Cover",
+                "Original Size"
+            ]
+        )
+
+    with col3:
+
+        quality = st.select_slider(
+            "🎯 PDF Quality",
+            options=[
+                "Low",
+                "Medium",
+                "High",
+                "Maximum"
+            ],
+            value="High"
+        )
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+
+        margin = st.slider(
+            "White Margin",
+            0,
+            50,
+            10
+        )
+
+    with col2:
+
+        add_page_numbers = st.checkbox(
+            "🔢 Add Page Numbers"
+        )
+
+    with col3:
+
+        add_watermark = st.checkbox(
+            "💧 Add Watermark"
+        )
+
+
+    # =====================================================
+    # OUTPUT
+    # =====================================================
+
+    st.divider()
+
+    st.markdown("## 📄 Output")
+
+    pdf_name = st.text_input(
+        "PDF File Name",
+        value="My_Document.pdf"
+    )
+
+    st.caption(
+        f"{len(uploaded_files)} pages ready."
+    )
+
+    st.button(
+        "🚀 Generate PDF",
+        type="primary",
+        use_container_width=True
+    )
